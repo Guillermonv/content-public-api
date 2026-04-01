@@ -20,7 +20,8 @@ type Content struct {
 }
 
 type ContentPage struct {
-	Data       []Content `json:"data"`
-	NextCursor *int64    `json:"next_cursor"`
-	Limit      int       `json:"limit"`
+	Data     []Content `json:"data"`
+	Page     int       `json:"page"`
+	PageSize int       `json:"page_size"`
+	HasNext  bool      `json:"has_next"`
 }

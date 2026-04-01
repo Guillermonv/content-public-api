@@ -16,23 +16,18 @@ func NewContentStore(db *sql.DB) *ContentStore {
 	return &ContentStore{db: db}
 }
 
-func (s *ContentStore) GetDoneContent(ctx context.Context, cursor *int64, limit int) ([]model.Content, error) {
-	query := `
+func (s *ContentStore) GetDoneContent(ctx context.Context, page, pageSize int) ([]model.Content, error) {
+	offset := (page - 1) * pageSize
+
+	query := fmt.Sprintf(`
 		SELECT id, execution_id, title, short_description, message, status, type,
 		       sub_type, category, sub_category, image_url, image_prompt, created, last_updated
 		FROM content
-		WHERE status = 'DONE'`
+		WHERE status = 'DONE'
+		ORDER BY id DESC
+		LIMIT %d OFFSET %d`, pageSize, offset)
 
-	args := []any{}
-
-	if cursor != nil {
-		query += " AND id < ?"
-		args = append(args, *cursor)
-	}
-
-	query += fmt.Sprintf(" ORDER BY id DESC LIMIT %d", limit)
-
-	rows, err := s.db.QueryContext(ctx, query, args...)
+	rows, err := s.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
 	}

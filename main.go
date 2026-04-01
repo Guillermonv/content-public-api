@@ -30,7 +30,7 @@ func main() {
 	mux.HandleFunc("GET /content", contentHandler.GetContent)
 
 	log.Printf("listening on :%s", cfg.Port)
-	if err := http.ListenAndServe(":"+cfg.Port, mux); err != nil {
+	if err := http.ListenAndServe(":"+cfg.Port, corsMiddleware(mux)); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -60,6 +60,21 @@ func loadConfig() config {
 		JWTSecret: getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
 		Port:      getEnv("PORT", "8080"),
 	}
+}
+
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 func getEnv(key, fallback string) string {
