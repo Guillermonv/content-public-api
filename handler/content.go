@@ -15,10 +15,11 @@ import (
 )
 
 const (
-	defaultLimit = 20
-	maxLimit     = 100
-	cacheTTL     = 15 * time.Second
-	queryTimeout = 5 * time.Second
+	defaultPage     = 1
+	defaultPageSize = 20
+	maxPageSize     = 100
+	cacheTTL        = 15 * time.Second
+	queryTimeout    = 5 * time.Second
 )
 
 type ContentHandler struct {
@@ -34,13 +35,13 @@ func NewContentHandler(s *store.ContentStore) *ContentHandler {
 }
 
 func (h *ContentHandler) GetContent(w http.ResponseWriter, r *http.Request) {
-	limit, cursor, err := parseParams(r)
+	page, pageSize, err := parseParams(r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	cacheKey := fmt.Sprintf("content:cursor=%v:limit=%d", cursor, limit)
+	cacheKey := fmt.Sprintf("content:page=%d:page_size=%d", page, pageSize)
 
 	if cached, found := h.cache.Get(cacheKey); found {
 		writeJSON(w, cached)
@@ -50,48 +51,46 @@ func (h *ContentHandler) GetContent(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), queryTimeout)
 	defer cancel()
 
-	rows, err := h.store.GetDoneContent(ctx, cursor, limit)
+	rows, err := h.store.GetDoneContent(ctx, page, pageSize)
 	if err != nil {
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
-	page := model.ContentPage{
-		Data:  rows,
-		Limit: limit,
-	}
-	if len(rows) == limit {
-		last := rows[len(rows)-1].ID
-		page.NextCursor = &last
+	result := model.ContentPage{
+		Data:     rows,
+		Page:     page,
+		PageSize: pageSize,
+		HasNext:  len(rows) == pageSize,
 	}
 
-	h.cache.Set(cacheKey, page, gocache.DefaultExpiration)
-	writeJSON(w, page)
+	h.cache.Set(cacheKey, result, gocache.DefaultExpiration)
+	writeJSON(w, result)
 }
 
-func parseParams(r *http.Request) (int, *int64, error) {
-	limit := defaultLimit
-	if l := r.URL.Query().Get("limit"); l != "" {
-		v, err := strconv.Atoi(l)
-		if err != nil || v <= 0 {
-			return 0, nil, fmt.Errorf("invalid limit")
+func parseParams(r *http.Request) (page, pageSize int, err error) {
+	page = defaultPage
+	if p := r.URL.Query().Get("page"); p != "" {
+		v, e := strconv.Atoi(p)
+		if e != nil || v <= 0 {
+			return 0, 0, fmt.Errorf("invalid page")
 		}
-		if v > maxLimit {
-			v = maxLimit
-		}
-		limit = v
+		page = v
 	}
 
-	var cursor *int64
-	if c := r.URL.Query().Get("cursor"); c != "" {
-		v, err := strconv.ParseInt(c, 10, 64)
-		if err != nil || v <= 0 {
-			return 0, nil, fmt.Errorf("invalid cursor")
+	pageSize = defaultPageSize
+	if ps := r.URL.Query().Get("page_size"); ps != "" {
+		v, e := strconv.Atoi(ps)
+		if e != nil || v <= 0 {
+			return 0, 0, fmt.Errorf("invalid page_size")
 		}
-		cursor = &v
+		if v > maxPageSize {
+			v = maxPageSize
+		}
+		pageSize = v
 	}
 
-	return limit, cursor, nil
+	return page, pageSize, nil
 }
 
 func writeJSON(w http.ResponseWriter, v any) {
