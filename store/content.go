@@ -21,7 +21,7 @@ func (s *ContentStore) GetDoneContent(ctx context.Context, page, pageSize int) (
 
 	query := fmt.Sprintf(`
 		SELECT id, execution_id, title, short_description, message, status, type,
-		       sub_type, category, sub_category, image_url, image_prompt, created, last_updated
+		       sub_type, category, sub_category, image_url, image_prompt, slug, created, last_updated
 		FROM content
 		WHERE status = 'DONE'
 		ORDER BY id DESC
@@ -39,7 +39,7 @@ func (s *ContentStore) GetDoneContent(ctx context.Context, page, pageSize int) (
 		err := rows.Scan(
 			&c.ID, &c.ExecutionID, &c.Title, &c.ShortDescription, &c.Message,
 			&c.Status, &c.Type, &c.SubType, &c.Category, &c.SubCategory,
-			&c.ImageURL, &c.ImagePrompt, &c.Created, &c.LastUpdated,
+			&c.ImageURL, &c.ImagePrompt, &c.Slug, &c.Created, &c.LastUpdated,
 		)
 		if err != nil {
 			return nil, err
