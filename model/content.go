@@ -15,6 +15,7 @@ type Content struct {
 	SubCategory      *string    `json:"sub_category"`
 	ImageURL         *string    `json:"image_url"`
 	ImagePrompt      *string    `json:"image_prompt"`
+	Slug             *string    `json:"slug"`
 	Created          *time.Time `json:"created"`
 	LastUpdated      *time.Time `json:"last_updated"`
 }
