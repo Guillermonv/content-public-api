@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -53,6 +54,7 @@ func (h *ContentHandler) GetContent(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := h.store.GetDoneContent(ctx, page, pageSize)
 	if err != nil {
+		log.Printf("GetContent error: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}

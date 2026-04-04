@@ -27,7 +27,7 @@ func main() {
 	contentHandler := handler.NewContentHandler(contentStore)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /content", contentHandler.GetContent)
+	mux.HandleFunc("GET /api/v1/content", contentHandler.GetContent)
 
 	log.Printf("listening on :%s", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, corsMiddleware(mux)); err != nil {
@@ -58,7 +58,7 @@ func loadConfig() config {
 		DBPort:    getEnv("DB_PORT", "3306"),
 		DBName:    getEnv("DB_NAME", "ndb"),
 		JWTSecret: getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
-		Port:      getEnv("PORT", "8080"),
+		Port:      getEnv("PORT", "8081"),
 	}
 }
 
