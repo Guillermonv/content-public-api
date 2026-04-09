@@ -28,6 +28,8 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/content", contentHandler.GetContent)
+	mux.HandleFunc("GET /api/v1/content/search", contentHandler.SearchContent)
+	mux.HandleFunc("GET /api/v1/content/slug/{slug}", contentHandler.GetContentBySlug)
 
 	log.Printf("listening on :%s", cfg.Port)
 	if err := http.ListenAndServe(":"+cfg.Port, corsMiddleware(mux)); err != nil {

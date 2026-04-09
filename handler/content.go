@@ -35,6 +35,79 @@ func NewContentHandler(s *store.ContentStore) *ContentHandler {
 	}
 }
 
+func (h *ContentHandler) SearchContent(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query().Get("q")
+	if q == "" {
+		http.Error(w, "q is required", http.StatusBadRequest)
+		return
+	}
+
+	page, pageSize, err := parseParams(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	cacheKey := fmt.Sprintf("search:q=%s:page=%d:page_size=%d", q, page, pageSize)
+
+	if cached, found := h.cache.Get(cacheKey); found {
+		writeJSON(w, cached)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), queryTimeout)
+	defer cancel()
+
+	rows, err := h.store.SearchContent(ctx, q, page, pageSize)
+	if err != nil {
+		log.Printf("SearchContent error: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	result := model.ContentPage{
+		Data:     rows,
+		Page:     page,
+		PageSize: pageSize,
+		HasNext:  len(rows) == pageSize,
+	}
+
+	h.cache.Set(cacheKey, result, gocache.DefaultExpiration)
+	writeJSON(w, result)
+}
+
+func (h *ContentHandler) GetContentBySlug(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
+	if slug == "" {
+		http.Error(w, "slug is required", http.StatusBadRequest)
+		return
+	}
+
+	cacheKey := "slug:" + slug
+
+	if cached, found := h.cache.Get(cacheKey); found {
+		writeJSON(w, cached)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), queryTimeout)
+	defer cancel()
+
+	content, err := h.store.GetContentBySlug(ctx, slug)
+	if err != nil {
+		log.Printf("GetContentBySlug error: %v", err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+	if content == nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	h.cache.Set(cacheKey, content, gocache.DefaultExpiration)
+	writeJSON(w, content)
+}
+
 func (h *ContentHandler) GetContent(w http.ResponseWriter, r *http.Request) {
 	page, pageSize, err := parseParams(r)
 	if err != nil {
