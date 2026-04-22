@@ -125,7 +125,7 @@ func (h *ContentHandler) GetContent(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), queryTimeout)
 	defer cancel()
 
-	rows, err := h.store.GetDoneContent(ctx, page, pageSize)
+	rows, err := h.store.GetPublishedContent(ctx, page, pageSize)
 	if err != nil {
 		log.Printf("GetContent error: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)

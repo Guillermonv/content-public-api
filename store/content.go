@@ -23,7 +23,7 @@ func (s *ContentStore) SearchContent(ctx context.Context, q string, page, pageSi
 		SELECT id, execution_id, title, short_description, message, status,
 		       category, sub_category, image_url, image_prompt, slug, created, last_updated
 		FROM content
-		WHERE status = 'DONE'
+		WHERE status = 'PUBLISHED'
 		  AND (title LIKE ? OR short_description LIKE ? OR slug LIKE ? OR message LIKE ?)
 		ORDER BY
 		  CASE
@@ -57,14 +57,14 @@ func (s *ContentStore) SearchContent(ctx context.Context, q string, page, pageSi
 	return results, rows.Err()
 }
 
-func (s *ContentStore) GetDoneContent(ctx context.Context, page, pageSize int) ([]model.Content, error) {
+func (s *ContentStore) GetPublishedContent(ctx context.Context, page, pageSize int) ([]model.Content, error) {
 	offset := (page - 1) * pageSize
 
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, execution_id, title, short_description, message, status,
 		       category, sub_category, image_url, image_prompt, slug, created, last_updated
 		FROM content
-		WHERE status = 'DONE'
+		WHERE status = 'PUBLISHED'
 		ORDER BY id DESC
 		LIMIT ? OFFSET ?`, pageSize, offset)
 	if err != nil {
@@ -93,7 +93,7 @@ func (s *ContentStore) GetContentBySlug(ctx context.Context, slug string) (*mode
 		SELECT id, execution_id, title, short_description, message, status,
 		       category, sub_category, image_url, image_prompt, slug, created, last_updated
 		FROM content
-		WHERE status = 'DONE' AND slug = ?
+		WHERE status = 'PUBLISHED' AND slug = ?
 		LIMIT 1`, slug)
 
 	var c model.Content
